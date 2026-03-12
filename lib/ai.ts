@@ -1,4 +1,3 @@
-cat > lib/ai.ts << 'ENDOFFILE'
 import { TestStep } from './runner';
 
 function getProvider() {
@@ -38,21 +37,18 @@ async function callAI(systemPrompt: string, userPrompt: string, maxTokens: numbe
   }
 }
 
-export async function generateTestsFromUrl(url: string, html?: string): Promise<{
-  tests: Array<{ name: string; description: string; steps: TestStep[] }>;
-}> {
-  const systemPrompt = `You are an expert QA engineer. Generate comprehensive end-to-end test cases for web applications. You must respond ONLY with valid JSON — no markdown, no explanation, no backticks. Each test should have: name, description, and steps array. Each step must have: id (unique short string), instruction (plain English), type (navigate|click|type|assert|wait|screenshot|custom). Generate 5-8 test cases covering: page load, navigation, key interactions, forms, assertions.`;
-  const userPrompt = `Generate E2E test cases for this website: ${url}. Respond with JSON only: { "tests": [{ "name": "Test name", "description": "What this tests", "steps": [{ "id": "s1", "instruction": "Go to ${url}", "type": "navigate" }] }] }`;
+export async function generateTestsFromUrl(url: string, html?: string): Promise<{ tests: Array<{ name: string; description: string; steps: TestStep[] }> }> {
+  const systemPrompt = `You are an expert QA engineer. Respond ONLY with valid JSON. Generate 5-8 E2E test cases. Each test has: name, description, steps array. Each step has: id, instruction, type (navigate|click|type|assert|wait|screenshot|custom).`;
+  const userPrompt = `Generate E2E tests for: ${url}\nJSON format: {"tests":[{"name":"","description":"","steps":[{"id":"s1","instruction":"Go to ${url}","type":"navigate"}]}]}`;
   const text = await callAI(systemPrompt, userPrompt, 4000);
-  const clean = text.replace(/\`\`\`json|\`\`\`/g, '').trim();
+  const clean = text.replace(/```json|```/g, '').trim();
   return JSON.parse(clean);
 }
 
 export async function generateStepsFromDescription(description: string, url: string): Promise<TestStep[]> {
-  const systemPrompt = `You are an expert QA engineer. Convert test descriptions into actionable Playwright steps. Respond ONLY with valid JSON array — no markdown, no explanation.`;
-  const userPrompt = `Convert this test description into steps for URL: ${url}. Description: "${description}". Respond with JSON array only: [{ "id": "s1", "instruction": "Go to ${url}", "type": "navigate" }]`;
+  const systemPrompt = `You are an expert QA engineer. Respond ONLY with a JSON array of steps. Each step has: id, instruction, type.`;
+  const userPrompt = `Steps for: ${description} on ${url}\nJSON: [{"id":"s1","instruction":"Go to ${url}","type":"navigate"}]`;
   const text = await callAI(systemPrompt, userPrompt, 2000);
-  const clean = text.replace(/\`\`\`json|\`\`\`/g, '').trim();
+  const clean = text.replace(/```json|```/g, '').trim();
   return JSON.parse(clean);
 }
-ENDOFFILE
